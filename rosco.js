@@ -57,18 +57,19 @@ const letras = [
   };
   
   let letraActual = null;
+  let letrasPendientes = [...letras]; // Lista de letras para recorrer
   
   function crearRosco() {
     const rosco = document.getElementById('rosco');
     const ancho = rosco.offsetWidth;
     const alto = rosco.offsetHeight;
-    const radio = (Math.min(ancho, alto) / 2) - (ancho * 0.1); // Deja espacio para los botones
+    const radio = (Math.min(ancho, alto) / 2) - (ancho * 0.1);
     const centroX = ancho / 2;
     const centroY = alto / 2;
   
     letras.forEach((letra, index) => {
       const angulo = (index / letras.length) * 2 * Math.PI - Math.PI / 2;
-      const x = centroX + radio * Math.cos(angulo) - (ancho * 0.05); 
+      const x = centroX + radio * Math.cos(angulo) - (ancho * 0.05);
       const y = centroY + radio * Math.sin(angulo) - (ancho * 0.05);
   
       const boton = document.createElement('div');
@@ -76,14 +77,13 @@ const letras = [
       boton.style.left = `${x}px`;
       boton.style.top = `${y}px`;
       boton.innerText = letra;
-      boton.onclick = () => seleccionarLetra(letra, boton);
-  
+      boton.dataset.letra = letra;
       rosco.appendChild(boton);
     });
   }
   
-  function seleccionarLetra(letra, boton) {
-    letraActual = { letra, boton };
+  function seleccionarLetra(letra) {
+    letraActual = letra;
     document.getElementById('pregunta').innerText = preguntas[letra];
     document.getElementById('respuesta').value = '';
     document.getElementById('respuesta').focus();
@@ -91,30 +91,51 @@ const letras = [
   
   function comprobar() {
     if (!letraActual) return;
+  
     const respuestaUsuario = document.getElementById('respuesta').value.trim().toLowerCase();
-    const correcta = respuestas[letraActual.letra]?.toLowerCase(); // 💥 Acá el cambio
+    const respuestaCorrecta = respuestas[letraActual];
   
-    if (respuestaUsuario === correcta) {
-      letraActual.boton.style.backgroundColor = 'green';
+    const boton = document.querySelector(`.letra[data-letra="${letraActual}"]`);
+  
+    if (respuestaUsuario === respuestaCorrecta) {
+      boton.style.backgroundColor = 'green';
     } else {
-      letraActual.boton.style.backgroundColor = 'red';
+      boton.style.backgroundColor = 'red';
     }
-    document.getElementById('pregunta').innerText = `Respuesta correcta: ${respuestas[letraActual.letra]}`;
-    letraActual = null;
-  }
   
+    document.getElementById('pregunta').innerText = `Respuesta correcta: ${respuestaCorrecta}`;
+    document.getElementById('boton-siguiente').disabled = false;
+  }
   
   function pasar() {
     if (!letraActual) return;
-    letraActual.boton.style.backgroundColor = 'yellow';
+  
+    const boton = document.querySelector(`.letra[data-letra="${letraActual}"]`);
+    boton.style.backgroundColor = 'yellow';
+  
     document.getElementById('pregunta').innerText = '¡Pasaste esta letra!';
-    letraActual = null;
+    document.getElementById('boton-siguiente').disabled = false;
+  }
+  
+  function siguiente() {
+    if (letrasPendientes.length === 0) {
+      document.getElementById('pregunta').innerText = '¡Juego terminado!';
+      return;
+    }
+  
+    const siguienteLetra = letrasPendientes.shift();
+    seleccionarLetra(siguienteLetra);
+  
+    document.getElementById('boton-siguiente').disabled = true;
   }
   
   window.addEventListener('resize', () => {
-    document.getElementById('rosco').innerHTML = ''; // Borramos para redibujar
+    document.getElementById('rosco').innerHTML = '';
     crearRosco();
   });
   
-  crearRosco();
+  window.onload = () => {
+    crearRosco();
+    siguiente(); // Empieza automáticamente
+  };
   
